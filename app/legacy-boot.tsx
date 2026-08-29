@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { installLegacySubmissionBridge } from "./legacy-submission-bridge";
 
 const LEGACY_ENTRY = "/assets/index-xadm5lxP.js";
 const LOAD_TIMEOUT_MS = 12000;
@@ -112,6 +113,7 @@ export function LegacyBoot() {
     window.addEventListener("unhandledrejection", handleRuntimeError);
 
     enableReducedMotionFallbackWhenWebGLIsUnavailable();
+    const restoreSubmissionBridge = installLegacySubmissionBridge();
 
     const observer = new MutationObserver(syncLoader);
     observer.observe(root, { childList: true, subtree: true });
@@ -143,6 +145,7 @@ export function LegacyBoot() {
       script.removeEventListener("error", markFailed);
       window.removeEventListener("error", handleRuntimeError);
       window.removeEventListener("unhandledrejection", handleRuntimeError);
+      restoreSubmissionBridge();
     };
   }, []);
 

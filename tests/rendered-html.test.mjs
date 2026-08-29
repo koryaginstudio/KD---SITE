@@ -310,6 +310,157 @@ test("is ready for an owner-controlled Cloudflare Worker", async () => {
   assert.match(workerSource, /if \(!env\.IMAGES\)/);
 });
 
+test("routes every public form through the protected submission API", async () => {
+  const [bridge, workerSource, schema] = await Promise.all([
+    readFile("app/legacy-submission-bridge.ts", "utf8"),
+    readFile("worker/index.ts", "utf8"),
+    readFile("supabase/leads-and-bookings.sql", "utf8"),
+  ]);
+
+  for (const legacyEndpoint of [
+    "/functions/v1/quiz-submit",
+    "/rest/v1/leads",
+    "/rest/v1/consultation_bookings",
+  ]) {
+    assert.ok(bridge.includes(legacyEndpoint), legacyEndpoint);
+  }
+  assert.match(workerSource, /url\.pathname === "\/api\/leads"/);
+  assert.match(workerSource, /url\.pathname === "\/api\/bookings"/);
+  assert.match(schema, /alter table public\.lead_submissions enable row level security/);
+  assert.match(schema, /consultation_bookings_active_slot_idx/);
+  assert.match(schema, /revoke all on public\.lead_submissions from anon, authenticated/);
+});
+
+test("rejects unsafe or unconfigured public submissions", async () => {
+  const worker = await loadWorker();
+  const crossOrigin = await worker.fetch(
+    new Request("https://example.test/api/leads", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        origin: "https://attacker.example",
+        "sec-fetch-site": "cross-site",
+      },
+      body: JSON.stringify({ name: "Test", contact: "test@example.com" }),
+    }),
+    runtimeEnv,
+    runtimeContext,
+  );
+  assert.equal(crossOrigin.status, 403);
+
+  const noStorage = await worker.fetch(
+    new Request("https://example.test/api/leads", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        origin: "https://example.test",
+        "sec-fetch-site": "same-origin",
+      },
+      body: JSON.stringify({ name: "Test", contact: "test@example.com" }),
+    }),
+    runtimeEnv,
+    runtimeContext,
+  );
+  assert.equal(noStorage.status, 503);
+  assert.deepEqual(await noStorage.json(), {
+    ok: false,
+    error: "storage_not_configured",
+  });
+});
+
+test("stores the full quiz path before notifying every Telegram recipient", async () => {
+  const worker = await loadWorker();
+  const originalFetch = globalThis.fetch;
+  const pending = [];
+  const telegramMessages = [];
+  let storedPayload;
+
+  globalThis.fetch = async (input, init = {}) => {
+    const url = String(input);
+    if (url.includes("/rest/v1/rpc/submit_lead")) {
+      storedPayload = JSON.parse(String(init.body)).p_payload;
+      return Response.json([{
+        lead_id: "57d9c519-7580-4a83-89a2-68675855211d",
+        booking_id: null,
+        duplicate: false,
+      }]);
+    }
+    if (url.includes("/rest/v1/lead_deliveries?on_conflict=")) {
+      return Response.json([{ id: crypto.randomUUID(), status: "pending" }]);
+    }
+    if (url.startsWith("https://api.telegram.org/")) {
+      telegramMessages.push(JSON.parse(String(init.body)));
+      return Response.json({ ok: true, result: { message_id: 1 } });
+    }
+    if (url.includes("/rest/v1/lead_deliveries?") && init.method === "PATCH") {
+      return new Response(null, { status: 204 });
+    }
+    throw new Error(`Unexpected test request: ${url}`);
+  };
+
+  try {
+    const response = await worker.fetch(
+      new Request("https://example.test/api/leads", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          origin: "https://example.test",
+          "sec-fetch-site": "same-origin",
+          "cf-ipcountry": "RU",
+          "x-submission-key": "e530e775-7471-49b6-82ac-79847756bf22",
+        },
+        body: JSON.stringify({
+          quizVersion: "koryagin_design_quiz_v1",
+          source: "hero",
+          contact: {
+            name: "Антон",
+            contact: "@client",
+            business: "Studio",
+            comment: "Нужен брендинг",
+          },
+          result: {
+            serviceId: "branding",
+            serviceName: "Брендинг",
+            score: { branding: 3 },
+          },
+          answers: [{
+            questionId: "goal",
+            questionTitle: "Что требуется?",
+            selectedOptionId: "system",
+            selectedOptionLabel: "Полная система",
+          }],
+          page: { url: "https://koryagindesign.com/", referrer: "https://ya.ru/" },
+          utm: { utm_source: "yandex" },
+        }),
+      }),
+      {
+        ...runtimeEnv,
+        SUPABASE_SERVICE_ROLE_KEY: "test-only-key",
+        TELEGRAM_BOT_TOKEN: "test-token",
+        TELEGRAM_RECIPIENT_CHAT_IDS: "111,222",
+      },
+      {
+        ...runtimeContext,
+        waitUntil(promise) { pending.push(promise); },
+      },
+    );
+
+    assert.equal(response.status, 201);
+    assert.equal(storedPayload.kind, "quiz");
+    assert.equal(storedPayload.answers[0].selectedOptionLabel, "Полная система");
+    await Promise.all(pending);
+    assert.equal(telegramMessages.length, 2);
+    for (const notification of telegramMessages) {
+      assert.match(notification.text, /НОВАЯ ЗАЯВКА ИЗ КВИЗА/);
+      assert.match(notification.text, /Антон/);
+      assert.match(notification.text, /Что требуется\?/);
+      assert.match(notification.text, /Полная система/);
+    }
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test("adds browser security headers without changing the HTML payload", async () => {
   const worker = await loadWorker();
   const response = await worker.fetch(
