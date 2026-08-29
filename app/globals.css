@@ -1,0 +1,848 @@
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  padding: 0;
+}
+
+html[data-kd-locale="en"]:not(.kd-locale-ready) #root {
+  visibility: hidden;
+}
+
+.kd-language-switch {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: rgba(244, 243, 242, 0.76);
+  transition: background var(--dur-base) var(--ease-out),
+    border-color var(--dur-base) var(--ease-out);
+}
+
+.kd-language-switch[data-inverse="true"] {
+  border-color: rgba(244, 243, 242, 0.42);
+  background: rgba(20, 19, 19, 0.28);
+}
+
+.kd-language-switch button {
+  min-width: 34px;
+  height: 30px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+}
+
+.kd-language-switch[data-inverse="true"] button {
+  color: var(--ink-200);
+}
+
+.kd-language-switch button.is-active {
+  background: var(--ink-800);
+  color: var(--bone-100);
+}
+
+.kd-language-switch[data-inverse="true"] button.is-active {
+  background: var(--bone-100);
+  color: var(--ink-800);
+}
+
+@media (max-width: 460px) {
+  .kd-language-switch {
+    padding: 2px;
+  }
+
+  .kd-language-switch button {
+    min-width: 31px;
+    height: 28px;
+    padding: 0 6px;
+  }
+}
+
+#kd-site-loader {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+  opacity: 1;
+  visibility: visible;
+  transition: opacity var(--dur-base) var(--ease-out),
+    visibility 0s linear 0s;
+}
+
+/* Keep the impact-section annotation visually attached to its heading. */
+@media (min-width: 721px) {
+  #impact .kd-secheading > h2 {
+    flex: 0 1 760px;
+    width: min(62vw, 760px);
+  }
+}
+
+/* Process cards use one static branded image on every device. */
+#process .kd-process-back {
+  background-color: var(--ink-900);
+  background-image: url("/assets/images/process-back-mobile.webp");
+  background-position: center;
+  background-size: cover;
+}
+
+#process .kd-process-back__video {
+  display: none !important;
+}
+
+.kd-site-loader__mark {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#kd-site-loader.is-hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity var(--dur-base) var(--ease-out),
+    visibility 0s linear var(--dur-base);
+}
+
+.kd-site-loader__mark > img {
+  width: min(220px, 62vw);
+  height: auto;
+}
+
+html[data-kd-locale="ru"] .kd-site-loader__logo-en,
+html[data-kd-locale="en"] .kd-site-loader__logo-ru {
+  display: none;
+}
+
+html[data-kd-locale="en"] .kd-site-loader__logo-en {
+  width: min(320px, 78vw);
+}
+
+.kd-apple-device .kd-hero-scrim {
+  background: radial-gradient(70% 65% at 16% 100%, #14131399, #14131300 68%),
+    linear-gradient(180deg, #14131300 45%, #141313d9 100%) !important;
+}
+
+@media (max-width: 720px) {
+  .kd-hero-scrim {
+    background: radial-gradient(70% 65% at 16% 100%, #14131399, #14131300 68%),
+      linear-gradient(180deg, #14131300 45%, #141313d9 100%) !important;
+  }
+}
+
+.kd-review-card__flag[data-kd-flag]::before {
+  content: "";
+  display: inline-block;
+  width: 18px;
+  height: 12px;
+  flex: none;
+  border-radius: 2px;
+  background-position: center;
+  background-size: cover;
+  box-shadow: 0 0 0 1px rgba(20, 19, 19, 0.12);
+}
+
+.kd-review-card__flag[data-kd-flag="ru"]::before { background-image: url("/assets/flags/ru.svg"); }
+.kd-review-card__flag[data-kd-flag="us"]::before { background-image: url("/assets/flags/us.svg"); }
+.kd-review-card__flag[data-kd-flag="no"]::before { background-image: url("/assets/flags/no.svg"); }
+.kd-review-card__flag[data-kd-flag="gb"]::before { background-image: url("/assets/flags/gb.svg"); }
+
+.kd-booking-timezone {
+  margin: 8px 48px 0 0;
+  color: var(--text-muted);
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+
+.kd-booking-slot[data-kd-us-time="true"] {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  line-height: 1.1;
+}
+
+.kd-booking-slot[data-kd-us-time="true"] small {
+  font-size: 10px;
+  font-weight: 500;
+  opacity: 0.72;
+}
+
+@media (max-width: 640px) {
+  [role="dialog"]:has(#booking-title) #booking-title {
+    padding-right: 54px;
+    font-size: clamp(24px, 8vw, 30px) !important;
+  }
+}
+
+#kd-site-loader [data-loader-indicator] {
+  position: absolute;
+  top: calc(100% + 14px);
+  left: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transform: translateX(-50%);
+}
+
+#kd-site-loader [data-loader-indicator] i {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--text-primary);
+  animation: kd-loader-dot 1.05s var(--ease-in-out) infinite;
+}
+
+#kd-site-loader [data-loader-indicator] i:nth-child(2) {
+  animation-delay: 0.14s;
+}
+
+#kd-site-loader [data-loader-indicator] i:nth-child(3) {
+  animation-delay: 0.28s;
+}
+
+#kd-site-loader [data-loader-retry] {
+  position: absolute;
+  top: calc(50% + 84px);
+  left: 50%;
+  transform: translateX(-50%);
+  min-height: 44px;
+  padding: 11px 22px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  color: var(--accent-contrast);
+  font: inherit;
+  cursor: pointer;
+}
+
+@keyframes kd-loader-dot {
+  0%,
+  70%,
+  100% {
+    opacity: 0.3;
+    transform: translateY(0);
+  }
+
+  35% {
+    opacity: 1;
+    transform: translateY(-4px);
+  }
+}
+
+.cookie-banner__content {
+  flex-direction: row-reverse;
+}
+
+/* English originals do not need a second English rendering underneath. */
+html[data-kd-locale="en"] .kd-quote__en,
+html[data-kd-locale="en"] .kd-review-card__translation {
+  display: none !important;
+}
+
+header[style*="linear-gradient"] {
+  border-bottom: none !important;
+  box-shadow: none !important;
+}
+
+/* Both header states share one 72px alignment box. */
+header > .kd-container {
+  padding-top: 0 !important;
+  position: relative;
+  z-index: 901;
+}
+
+/* About switches to one column below desktop. Both cards must keep the same
+   full container width throughout the tablet and split-screen range. */
+@media (max-width: 1199px) {
+  #about .kd-bento {
+    grid-template-columns: minmax(0, 1fr) !important;
+    width: 100%;
+    min-width: 0;
+  }
+
+  #about .kd-about-text,
+  #about .kd-about-photo {
+    grid-column: 1 / -1 !important;
+    justify-self: stretch !important;
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0;
+  }
+
+  #about .kd-about-photo {
+    margin-top: 0 !important;
+  }
+}
+
+/* Split-screen composition: copy stays full width, while the portrait and
+   three proof cards form one balanced two-column row underneath. */
+@media (min-width: 721px) and (max-width: 1199px) {
+  #about > .kd-container {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    align-items: stretch;
+  }
+
+  #about > .kd-container > .kd-secheading {
+    grid-column: 1 / -1;
+    margin-bottom: 24px !important;
+  }
+
+  #about .kd-bento {
+    display: contents !important;
+  }
+
+  #about .kd-about-text {
+    grid-column: 1 / -1 !important;
+    grid-row: 2;
+  }
+
+  #about .kd-about-photo {
+    grid-column: 1 !important;
+    grid-row: 3;
+    height: 100%;
+    min-height: 0;
+    aspect-ratio: auto !important;
+    align-self: stretch;
+  }
+
+  #about .kd-about-photo__bg img,
+  #about .kd-about-photo__cut {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+  }
+
+  #about .kd-about-stats {
+    grid-column: 2;
+    grid-row: 3;
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-rows: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+    height: 100%;
+    margin-top: 0;
+    align-self: stretch;
+  }
+}
+
+/* Center an unpaired final card whenever these sections use two columns. */
+@media (min-width: 461px) {
+  .kd-portfolio-grid > :last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+    justify-self: center;
+    width: calc((100% - var(--space-4)) / 2);
+  }
+}
+
+@media (min-width: 461px) and (max-width: 1024px) {
+  .kd-why-grid > :last-child:nth-child(odd),
+  .kd-business-grid > :last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+    justify-self: center;
+    width: calc((100% - var(--space-4)) / 2);
+  }
+}
+
+@media (min-width: 721px) and (max-width: 1024px) {
+  .kd-process-grid > :last-child:nth-child(odd),
+  .kd-plans-grid > :last-child:nth-child(odd),
+  .kd-perks-grid > :last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+    justify-self: center;
+    width: calc((100% - var(--space-4)) / 2);
+  }
+}
+
+/* Draw the burger from centered lines instead of a baseline-dependent glyph. */
+.kd-burger > span {
+  position: relative;
+  display: block;
+  width: 18px;
+  height: 14px;
+  font-size: 0 !important;
+  line-height: 0;
+}
+
+.kd-burger > span::before,
+.kd-burger > span::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  width: 18px;
+  height: 2px;
+  border-radius: var(--radius-pill);
+  background: currentColor;
+  transform-origin: center;
+}
+
+.kd-burger > span::before {
+  top: 0;
+  box-shadow: 0 6px 0 currentColor, 0 12px 0 currentColor;
+}
+
+.kd-burger > span::after {
+  display: none;
+}
+
+.kd-burger[aria-expanded="true"] > span::before,
+.kd-burger[aria-expanded="true"] > span::after {
+  top: 6px;
+  display: block;
+  box-shadow: none;
+}
+
+.kd-burger[aria-expanded="true"] > span::before {
+  transform: rotate(45deg);
+}
+
+.kd-burger[aria-expanded="true"] > span::after {
+  transform: rotate(-45deg);
+}
+
+@media (max-width: 720px) {
+  /* Compact bottom notices replace the floating contact button while visible. */
+  body:has(.cookie-banner) .kd-floating-social,
+  body:has(.kd-quiz-widget) .kd-floating-social {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none !important;
+  }
+
+  .cookie-banner {
+    left: 12px !important;
+    right: 12px !important;
+    bottom: calc(10px + env(safe-area-inset-bottom, 0px)) !important;
+    max-width: 340px !important;
+    padding: 14px !important;
+    gap: 12px !important;
+    align-items: stretch !important;
+    border-radius: 16px !important;
+  }
+
+  .cookie-banner__content {
+    gap: 10px !important;
+    align-items: flex-start !important;
+  }
+
+  .cookie-banner__content > img {
+    width: 40px !important;
+    height: 40px !important;
+    border-radius: 10px !important;
+  }
+
+  .cookie-banner__text {
+    text-align: left !important;
+    font-size: 12.5px !important;
+    line-height: 1.4 !important;
+  }
+
+  .cookie-banner__actions {
+    width: 100%;
+    flex-wrap: nowrap !important;
+    gap: 8px !important;
+  }
+
+  .cookie-banner__actions > button {
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 40px;
+    padding: 9px 12px !important;
+    font-size: 12.5px !important;
+  }
+
+  .kd-quiz-widget {
+    left: auto !important;
+    right: 12px !important;
+    bottom: calc(10px + env(safe-area-inset-bottom, 0px)) !important;
+    width: min(300px, calc(100vw - 24px)) !important;
+    padding: 14px 14px 14px 16px !important;
+    border-radius: 16px !important;
+  }
+
+  .kd-quiz-widget__close {
+    top: 5px !important;
+    right: 5px !important;
+    width: 26px !important;
+    height: 26px !important;
+  }
+
+  .kd-quiz-widget__body {
+    gap: 7px !important;
+    padding-right: 22px !important;
+  }
+
+  .kd-quiz-widget__title {
+    font-size: 14px !important;
+    line-height: 1.12 !important;
+  }
+
+  .kd-quiz-widget__subtitle {
+    font-size: 12px !important;
+    line-height: 1.4 !important;
+  }
+
+  .kd-quiz-widget__body > button {
+    min-height: 38px;
+    padding: 8px 14px !important;
+    font-size: 12.5px !important;
+  }
+
+  /* Keep both hero actions compact and visible in the first viewport. */
+  #top .kd-hero-copy {
+    width: 100%;
+  }
+
+  #top .kd-hero-copy > div:last-child {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px !important;
+    width: 100%;
+  }
+
+  #top .kd-hero-copy > div:last-child > button {
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+    padding: 10px 8px !important;
+    font-size: clamp(11px, 3.2vw, 13px) !important;
+    line-height: 1.15;
+    white-space: nowrap;
+  }
+
+  html.kd-telegram-webview header[style*="linear-gradient"] {
+    background: transparent !important;
+  }
+
+  .kd-hero {
+    touch-action: pan-y;
+  }
+
+  .kd-mobile-menu-chrome {
+    position: fixed;
+    top: 0;
+    right: 0;
+    left: 0;
+    z-index: 4000;
+    width: 100%;
+    height: 72px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-base);
+  }
+
+  .kd-mobile-menu-chrome__inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    height: 72px;
+    padding-top: 0 !important;
+  }
+
+  .kd-mobile-menu-chrome__logo,
+  .kd-mobile-menu-chrome__close {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--text-primary);
+    cursor: pointer;
+  }
+
+  .kd-mobile-menu-chrome__logo {
+    display: flex;
+    align-items: center;
+  }
+
+  .kd-mobile-menu-chrome__logo img {
+    display: block;
+    width: auto;
+    height: 46px;
+    filter: none !important;
+  }
+
+  .kd-mobile-menu-chrome__close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    flex: none;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+  }
+
+  .kd-mobile-menu-chrome__close > span {
+    position: relative;
+    display: block;
+    width: 18px;
+    height: 18px;
+  }
+
+  .kd-mobile-menu-chrome__close > span::before,
+  .kd-mobile-menu-chrome__close > span::after {
+    content: "";
+    position: absolute;
+    top: 8px;
+    left: 0;
+    width: 18px;
+    height: 2px;
+    border-radius: var(--radius-pill);
+    background: currentColor;
+  }
+
+  .kd-mobile-menu-chrome__close > span::before {
+    transform: rotate(45deg);
+  }
+
+  .kd-mobile-menu-chrome__close > span::after {
+    transform: rotate(-45deg);
+  }
+
+  /* About: keep both portrait layers intact and fix only their mobile frame. */
+  #about .kd-bento {
+    display: flex !important;
+    flex-direction: column;
+    gap: 16px;
+    width: 100%;
+    min-width: 0;
+  }
+
+  #about .kd-about-text {
+    grid-column: auto !important;
+    justify-self: stretch !important;
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0;
+    padding: 24px 20px !important;
+    overflow-wrap: anywhere;
+  }
+
+  #about .kd-about-photo {
+    grid-column: auto !important;
+    justify-self: stretch !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin-top: 0 !important;
+    aspect-ratio: 0.94;
+  }
+
+  #about .kd-about-photo__caption {
+    left: 8px;
+    right: 8px;
+    display: flex !important;
+    justify-content: center !important;
+    gap: 6px;
+    padding: 11px 12px;
+    font-size: clamp(11px, 3.15vw, 12.5px) !important;
+    letter-spacing: -0.015em;
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  #about .kd-about-photo__caption b {
+    flex: none;
+    white-space: nowrap;
+  }
+
+  #about .kd-about-photo__caption span {
+    flex: none;
+    overflow: visible;
+    font-size: inherit !important;
+    letter-spacing: -0.025em;
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  /* The featured badge sits above its card, so the mobile rows need air. */
+  #services .kd-plans-grid {
+    row-gap: 38px;
+  }
+
+  /* Each card gives one subtle interaction cue as it enters the viewport. */
+  .kd-process-card.kd-process-hint .kd-process-inner {
+    animation: kd-process-mobile-hint 1.15s var(--ease-in-out) 0.18s 1;
+  }
+
+  /* Case gallery: keep the original single row of four thumbnails. */
+  .kd-modal-thumbs {
+    display: flex !important;
+    gap: 10px !important;
+  }
+
+  .kd-modal-thumb {
+    width: auto !important;
+    min-width: 0 !important;
+    flex: 1 1 0 !important;
+  }
+
+  .kd-project-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 20px !important;
+  }
+
+  [role="dialog"]:has(.kd-modal-gallery) {
+    margin-bottom: 0 !important;
+  }
+
+  /* Keep the iOS page canvas light while the modal mounts. The full-height
+     shell below paints the dimming layer, so there is no black first frame. */
+  html.kd-project-modal-open,
+  html.kd-project-modal-open body {
+    background: var(--bg-base) !important;
+    overscroll-behavior: none;
+  }
+
+  .kd-project-modal-shell {
+    top: 0 !important;
+    right: 0 !important;
+    bottom: auto !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    height: 100lvh !important;
+    min-height: 100vh !important;
+    min-height: 100dvh !important;
+    min-height: 100lvh !important;
+    padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px)) !important;
+    overscroll-behavior: none;
+    background-color: rgba(15, 14, 14, 0.7);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    transition: background-color var(--dur-slow) var(--ease-out);
+  }
+
+  .kd-project-modal-shell > [aria-hidden="true"] {
+    display: none !important;
+  }
+
+  /* Mobile navigation overlays the page instead of entering document flow. */
+  .kd-menu-mobile {
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    padding: 0 !important;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    border-top: 0 !important;
+    background: rgba(15, 14, 14, 0.7) !important;
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    -webkit-overflow-scrolling: touch;
+    transform: none !important;
+    transition: opacity var(--dur-base) var(--ease-out) !important;
+  }
+
+  .kd-menu-mobile > nav.kd-container {
+    width: 100%;
+    max-width: none;
+    margin: 72px 0 0;
+    padding: 16px 16px calc(24px + env(safe-area-inset-bottom, 0px));
+    background: var(--bg-base);
+    box-shadow: var(--shadow-lg);
+  }
+
+  header:has(.kd-menu-mobile),
+  header.kd-mobile-menu-host {
+    position: fixed !important;
+    top: 0 !important;
+    right: 0 !important;
+    left: 0 !important;
+    z-index: 1200 !important;
+    width: 100% !important;
+    height: 72px !important;
+    border-bottom: 1px solid var(--border) !important;
+    background: var(--bg-base) !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+
+  header:has(.kd-menu-mobile) > .kd-container,
+  header.kd-mobile-menu-host > .kd-container {
+    position: relative;
+    z-index: 2;
+    height: 72px !important;
+    padding-top: 0 !important;
+    background: var(--bg-base);
+    visibility: hidden !important;
+  }
+
+  header:has(.kd-menu-mobile)::before {
+    content: "";
+    position: fixed;
+    inset: 0 0 auto;
+    z-index: 900;
+    height: 72px;
+    pointer-events: none;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-base);
+  }
+
+  header:has(.kd-menu-mobile) > .kd-container img {
+    filter: none !important;
+  }
+
+  header:has(.kd-menu-mobile) .kd-burger {
+    border-color: var(--border) !important;
+  }
+
+  header:has(.kd-menu-mobile) .kd-burger > span {
+    color: var(--text-primary) !important;
+  }
+
+  html:has(.kd-menu-mobile),
+  html.kd-mobile-menu-open,
+  html:has(.kd-menu-mobile) body,
+  html.kd-mobile-menu-open body {
+    overflow: hidden !important;
+    overscroll-behavior: none;
+  }
+}
+
+@keyframes kd-process-mobile-hint {
+  0%,
+  100% {
+    transform: rotateY(0deg);
+  }
+
+  42% {
+    transform: rotateY(16deg);
+  }
+}
+
+@media (max-width: 720px) and (prefers-reduced-motion: reduce) {
+  .kd-process-card.kd-process-hint .kd-process-inner {
+    animation: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #kd-site-loader,
+  #kd-site-loader.is-hidden {
+    transition: none;
+  }
+
+  #kd-site-loader [data-loader-indicator] i {
+    animation: none;
+  }
+}

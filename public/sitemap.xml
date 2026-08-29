@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Основной домен КОРЯГИН ДИЗАЙН™ -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://koryagindesign.com/</loc>
+    <lastmod>2026-07-10</lastmod>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://koryagindesign.com/portfolio</loc>
+    <lastmod>2026-07-10</lastmod>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://koryagindesign.com/privacy</loc>
+    <lastmod>2026-07-10</lastmod>
+    <priority>0.2</priority>
+  </url>
+  <url>
+    <loc>https://koryagindesign.com/user-agreement</loc>
+    <lastmod>2026-07-10</lastmod>
+    <priority>0.2</priority>
+  </url>
+  <url>
+    <loc>https://koryagindesign.com/cookies-policy</loc>
+    <lastmod>2026-07-10</lastmod>
+    <priority>0.2</priority>
+  </url>
+  <url>
+    <loc>https://koryagindesign.com/offer</loc>
+    <lastmod>2026-07-10</lastmod>
+    <priority>0.2</priority>
+  </url>
+  <url>
+    <loc>https://koryagindesign.com/personal-data</loc>
+    <lastmod>2026-07-10</lastmod>
+    <priority>0.2</priority>
+  </url>
+</urlset>

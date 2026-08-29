@@ -1,0 +1,5 @@
+# КОРЯГИН ДИЗАЙН™ — https://koryagindesign.com
+User-agent: *
+Allow: /
+
+Sitemap: https://koryagindesign.com/sitemap.xml

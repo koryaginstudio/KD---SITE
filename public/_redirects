@@ -1,0 +1,2 @@
+# SPA-фолбэк для Netlify: все пути отдаёт index.html, роутинг решает react-router.
+/* /index.html 200
