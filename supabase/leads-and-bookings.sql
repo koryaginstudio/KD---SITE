@@ -199,3 +199,9 @@ grant execute on function public.submit_consultation_booking(uuid, jsonb) to ser
 revoke all on public.lead_submissions from anon, authenticated;
 revoke all on public.consultation_bookings from anon, authenticated;
 revoke all on public.lead_deliveries from anon, authenticated;
+
+-- The Worker writes delivery attempts directly after the lead RPC succeeds.
+-- Keep personal data closed to public roles while allowing the server role to
+-- create and update Telegram/Bitrix delivery status records.
+grant usage on schema public to service_role;
+grant select, insert, update on public.lead_deliveries to service_role;

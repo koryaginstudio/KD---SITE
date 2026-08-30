@@ -376,13 +376,13 @@ function telegramMessage(leadId: string, payload: SubmissionPayload) {
     lines.push("🔴 <b>НОВАЯ ЗАЯВКА С САЙТА</b>");
   }
 
-  lines.push(`ID: <code>${escapeHtml(leadId)}</code>`);
-  lines.push(`Имя: <b>${escapeHtml(payload.name)}</b>`);
-  lines.push(`Контакт: ${escapeHtml(payload.contact)}`);
-  addLine(lines, "Бизнес", payload.business);
-  addLine(lines, "Услуга", payload.serviceName || payload.serviceId);
-  addLine(lines, "Бюджет и сроки", payload.budget);
-  addLine(lines, "Комментарий", payload.comment || payload.message);
+  lines.push(`🆔 ID: <code>${escapeHtml(leadId)}</code>`);
+  lines.push(`👤 Имя: <b>${escapeHtml(payload.name)}</b>`);
+  lines.push(`📲 Контакт: ${escapeHtml(payload.contact)}`);
+  addLine(lines, "🏢 Бизнес", payload.business);
+  addLine(lines, "🎨 Услуга", payload.serviceName || payload.serviceId);
+  addLine(lines, "💰 Бюджет и сроки", payload.budget);
+  addLine(lines, "📝 Комментарий", payload.comment || payload.message);
 
   if (payload.bookingDate && payload.bookingTime) {
     lines.push("");
@@ -393,7 +393,7 @@ function telegramMessage(leadId: string, payload: SubmissionPayload) {
 
   if (payload.answers?.length) {
     lines.push("");
-    lines.push("<b>Путь по квизу:</b>");
+    lines.push("🧭 <b>Путь по квизу:</b>");
     payload.answers.forEach((answer, index) => {
       lines.push(
         `${index + 1}. ${escapeHtml(answer.questionTitle)}\n→ <b>${escapeHtml(answer.selectedOptionLabel)}</b>`,
@@ -402,12 +402,12 @@ function telegramMessage(leadId: string, payload: SubmissionPayload) {
   }
 
   lines.push("");
-  lines.push(`Источник: ${escapeHtml(payload.source)}`);
-  lines.push(`Язык / страна: ${payload.locale.toUpperCase()} / ${escapeHtml(payload.country || "XX")}`);
-  addLine(lines, "Страница", payload.pageUrl);
-  addLine(lines, "Referrer", payload.referrer);
+  lines.push(`📍 Источник: ${escapeHtml(payload.source)}`);
+  lines.push(`🌍 Язык / страна: ${payload.locale.toUpperCase()} / ${escapeHtml(payload.country || "XX")}`);
+  addLine(lines, "🔗 Страница", payload.pageUrl);
+  addLine(lines, "↩️ Referrer", payload.referrer);
   if (payload.utm && Object.keys(payload.utm).length) {
-    lines.push(`UTM: ${escapeHtml(JSON.stringify(payload.utm))}`);
+    lines.push(`📊 UTM: ${escapeHtml(JSON.stringify(payload.utm))}`);
   }
 
   return fitTelegramLines(lines);

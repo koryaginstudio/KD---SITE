@@ -452,6 +452,9 @@ test("stores the full quiz path before notifying every Telegram recipient", asyn
     assert.equal(telegramMessages.length, 2);
     for (const notification of telegramMessages) {
       assert.match(notification.text, /НОВАЯ ЗАЯВКА ИЗ КВИЗА/);
+      assert.match(notification.text, /👤 Имя:/);
+      assert.match(notification.text, /📲 Контакт:/);
+      assert.match(notification.text, /🧭 <b>Путь по квизу:<\/b>/);
       assert.match(notification.text, /Антон/);
       assert.match(notification.text, /Что требуется\?/);
       assert.match(notification.text, /Полная система/);
