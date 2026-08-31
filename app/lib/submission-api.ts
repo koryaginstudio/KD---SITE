@@ -5,6 +5,11 @@ import { rest } from "./supabase-admin";
 const MAX_BODY_BYTES = 64 * 1024;
 const MAX_ANSWERS = 24;
 const TELEGRAM_MESSAGE_LIMIT = 3900;
+const BOOKING_START_HOUR = 10;
+const BOOKING_END_HOUR = 21;
+const BOOKING_STEP_MINUTES = 30;
+const BOOKING_MIN_NOTICE_MINUTES = 4 * 60;
+const BOOKING_MAX_DAYS_AHEAD = 30;
 
 export interface SubmissionEnv {
   SUPABASE_SERVICE_ROLE_KEY?: string;
@@ -138,6 +143,9 @@ export async function handleSubmissionRequest(
     if (message.includes("slot_unavailable")) {
       return submissionJson({ ok: false, error: "slot_unavailable" }, 409);
     }
+    if (message.includes("daily_limit_reached")) {
+      return submissionJson({ ok: false, error: "daily_limit_reached" }, 409);
+    }
     if (error instanceof SubmissionValidationError) {
       return submissionJson(
         { ok: false, error: error.code, field: error.field },
@@ -242,17 +250,31 @@ function normalizeBooking(value: unknown, request: Request): SubmissionPayload {
   }
   const [hours, minutes] = bookingTime.split(":").map(Number);
   const totalMinutes = hours * 60 + minutes;
-  if ((minutes !== 0 && minutes !== 30) || totalMinutes < 10 * 60 || totalMinutes > 21 * 60) {
+  if (
+    minutes % BOOKING_STEP_MINUTES !== 0 ||
+    totalMinutes < BOOKING_START_HOUR * 60 ||
+    totalMinutes >= BOOKING_END_HOUR * 60
+  ) {
     throw new SubmissionValidationError("time_outside_schedule", "booking_time");
   }
-  const moscowToday = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Europe/Moscow",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date());
-  if (bookingDate < moscowToday) {
-    throw new SubmissionValidationError("date_in_past", "booking_date");
+  const [year, month, day] = bookingDate.split("-").map(Number);
+  const normalizedDate = new Date(Date.UTC(year, month - 1, day))
+    .toISOString()
+    .slice(0, 10);
+  if (normalizedDate !== bookingDate) {
+    throw new SubmissionValidationError("invalid_date", "booking_date");
+  }
+  const bookingAt = Date.UTC(year, month - 1, day, hours - 3, minutes);
+  if (!Number.isFinite(bookingAt)) {
+    throw new SubmissionValidationError("invalid_date", "booking_date");
+  }
+  const noticeMinutes = (bookingAt - Date.now()) / 60_000;
+  if (noticeMinutes < BOOKING_MIN_NOTICE_MINUTES) {
+    throw new SubmissionValidationError("booking_too_soon", "booking_date");
+  }
+  const latestBookingAt = Date.now() + BOOKING_MAX_DAYS_AHEAD * 86_400_000;
+  if (bookingAt > latestBookingAt) {
+    throw new SubmissionValidationError("booking_too_far", "booking_date");
   }
 
   return withRequestContext({

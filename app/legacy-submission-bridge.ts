@@ -29,11 +29,14 @@ export function installLegacySubmissionBridge() {
       const details = await response.clone().json().catch(() => null) as {
         error?: string;
       } | null;
-      if (details?.error === "slot_unavailable") {
+      if (
+        details?.error === "slot_unavailable" ||
+        details?.error === "daily_limit_reached"
+      ) {
         throw new Error(
           document.documentElement.dataset.kdLocale === "en"
-            ? "This time has just been booked. Please choose another slot."
-            : "Это время только что заняли. Выбери другой слот.",
+            ? "This time is unavailable. Please choose another slot."
+            : "Это время недоступно. Выбери другой слот.",
         );
       }
     }

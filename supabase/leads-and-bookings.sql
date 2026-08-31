@@ -144,6 +144,8 @@ declare
   existing_booking_id uuid;
   inserted_booking_id uuid;
   inserted_lead_id uuid;
+  requested_date date;
+  requested_time time without time zone;
 begin
   select ls.id, ls.booking_id
     into existing_lead_id, existing_booking_id
@@ -155,6 +157,33 @@ begin
     return;
   end if;
 
+  requested_date := (p_payload->>'bookingDate')::date;
+  requested_time := (p_payload->>'bookingTime')::time;
+
+  -- Serialize bookings for one Moscow date so the daily limit and the
+  -- 30-minute consultation + 30-minute buffer cannot race each other.
+  perform pg_advisory_xact_lock(hashtext(requested_date::text));
+
+  if (
+    select count(*) >= 5
+    from public.consultation_bookings as cb
+    where cb.booking_date = requested_date
+      and cb.status = 'confirmed'
+  ) then
+    raise exception 'daily_limit_reached' using errcode = 'P0001';
+  end if;
+
+  if exists (
+    select 1
+    from public.consultation_bookings as cb
+    where cb.booking_date = requested_date
+      and cb.status = 'confirmed'
+      and cb.booking_time < requested_time + interval '60 minutes'
+      and cb.booking_time + interval '60 minutes' > requested_time
+  ) then
+    raise exception 'slot_unavailable' using errcode = 'P0001';
+  end if;
+
   begin
     insert into public.consultation_bookings (
       submission_key, name, contact, booking_date, booking_time, timezone,
@@ -163,8 +192,8 @@ begin
       p_submission_key,
       p_payload->>'name',
       p_payload->>'contact',
-      (p_payload->>'bookingDate')::date,
-      (p_payload->>'bookingTime')::time,
+      requested_date,
+      requested_time,
       coalesce(p_payload->>'timezone', 'Europe/Moscow'),
       p_payload->>'source',
       p_payload->>'locale',

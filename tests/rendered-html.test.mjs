@@ -282,6 +282,8 @@ test("ships international branding, Moscow booking time and LinkedIn", async () 
   assert.doesNotMatch(bundle, /vk\.com\/koryagindesign/);
   assert.match(bundle, /LinkedIn:"linkedin"/);
   assert.match(bundle, /Date\.UTC\(n,s-1,i,o-3,a,0,0\)/);
+  assert.match(bundle, /G1=30,J1=240/);
+  assert.match(bundle, /30 минут\. Работаю каждый день с 10:00 до 21:00\./);
   assert.match(fixes, /Times are shown in Moscow time \(GMT\+3\)/);
   assert.match(fixes, /dataset\.kdFlag/);
   assert.match(styles, /kd-booking-slot\[data-kd-us-time="true"\]/);
@@ -328,6 +330,8 @@ test("routes every public form through the protected submission API", async () =
   assert.match(workerSource, /url\.pathname === "\/api\/bookings"/);
   assert.match(schema, /alter table public\.lead_submissions enable row level security/);
   assert.match(schema, /consultation_bookings_active_slot_idx/);
+  assert.match(schema, /count\(\*\) >= 5/);
+  assert.match(schema, /interval '60 minutes'/);
   assert.match(schema, /revoke all on public\.lead_submissions from anon, authenticated/);
 });
 
