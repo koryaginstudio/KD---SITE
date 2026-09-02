@@ -278,6 +278,7 @@ test("ships international branding, Moscow booking time and LinkedIn", async () 
   assert.match(bundle, /eng-logo-horizontal-dark\.svg/);
   assert.match(bundle, /eng-logo-horizontal-white\.svg/);
   assert.match(loader, /kd-site-loader__logo-en/);
+  assert.match(loader, /index-xadm5lxP\.js\?v=20260902-2/);
   assert.match(bundle, /linkedin\.com\/in\/antonkoryagindesign/);
   assert.doesNotMatch(bundle, /vk\.com\/koryagindesign/);
   assert.match(bundle, /LinkedIn:"linkedin"/);
@@ -288,6 +289,8 @@ test("ships international branding, Moscow booking time and LinkedIn", async () 
   assert.match(fixes, /dataset\.kdFlag/);
   assert.match(styles, /kd-booking-slot\[data-kd-us-time="true"\]/);
   assert.match(styles, /kd-apple-device \.kd-hero-scrim/);
+  assert.match(styles, /html\[data-kd-locale="en"\] \.kd-site-loader__logo-en \{[\s\S]*?width: min\(220px, 62vw\)/);
+  assert.match(translations, /"Обсудим задачу и подберём формат - 15-20 минут\.": "We will discuss the task and choose the right format in 30 minutes\."/);
   assert.match(translations, /"Ощущение бренда": "A clear brand feel,"/);
   assert.match(translations, /", а не просто компании": " not just a company"/);
 

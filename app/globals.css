@@ -131,7 +131,7 @@ html[data-kd-locale="en"] .kd-site-loader__logo-ru {
 }
 
 html[data-kd-locale="en"] .kd-site-loader__logo-en {
-  width: min(320px, 78vw);
+  width: min(220px, 62vw);
 }
 
 .kd-apple-device .kd-hero-scrim {

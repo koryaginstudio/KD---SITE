@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { installLegacySubmissionBridge } from "./legacy-submission-bridge";
 
-const LEGACY_ENTRY = "/assets/index-xadm5lxP.js";
+const LEGACY_ENTRY = "/assets/index-xadm5lxP.js?v=20260902-2";
 const LOAD_TIMEOUT_MS = 12000;
 let webGLPreflightDone = false;
 

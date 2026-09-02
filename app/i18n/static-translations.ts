@@ -382,6 +382,8 @@ export const staticTranslations: Record<string, string> = {
   "Тебе подойдет экспресс-формат разработки логотипа. Сроки сжаты по максимуму, поэтому важно быстро получить сильный узнаваемый знак без затягивания процесса - минимум итераций, максимум скорости.": "The express logo format is the right fit when time is tight and you need a strong, recognizable mark fast. It keeps the process focused with fewer iterations and a quick delivery.",
   "Тебе подойдет экспресс-формат разработки айдентики. Сроки сжаты по максимуму, поэтому нужно быстро собрать рабочую визуальную систему - цвета, шрифты, ключевые элементы - без потери качества, по ускоренному процессу.": "The express identity format is the right fit when time is tight and you need a working visual system fast: color, typography and key elements delivered through a focused process.",
   "Обсудим задачу и подберём формат - 30 минут.": "We will discuss the task and choose the right format in 30 minutes.",
+  "Обсудим задачу и подберём формат - 15-20 минут.": "We will discuss the task and choose the right format in 30 minutes.",
+  "Обсудим задачу и подберём формат - 15–20 минут.": "We will discuss the task and choose the right format in 30 minutes.",
   "Жду тебя:": "See you on:",
   "на результат": "focused on results",
 };
