@@ -1,6 +1,14 @@
 import { requestLocale } from "../i18n/locale";
 import { rejectCrossOriginMutation } from "./request-security";
 import { rest } from "./supabase-admin";
+import {
+  calendarSlotIsBusy,
+  calendarUnavailableSlots,
+  createCalendarBooking,
+  GoogleCalendarError,
+  type CalendarEventResult,
+  type GoogleCalendarEnv,
+} from "./google-calendar";
 
 const MAX_BODY_BYTES = 64 * 1024;
 const MAX_ANSWERS = 24;
@@ -11,7 +19,7 @@ const BOOKING_STEP_MINUTES = 30;
 const BOOKING_MIN_NOTICE_MINUTES = 4 * 60;
 const BOOKING_MAX_DAYS_AHEAD = 30;
 
-export interface SubmissionEnv {
+export interface SubmissionEnv extends GoogleCalendarEnv {
   SUPABASE_SERVICE_ROLE_KEY?: string;
   TELEGRAM_BOT_TOKEN?: string;
   TELEGRAM_RECIPIENT_CHAT_IDS?: string;
@@ -97,6 +105,14 @@ export async function handleSubmissionRequest(
       request.headers.get("x-submission-key"),
     );
 
+    if (payload.kind === "booking" && await calendarSlotIsBusy(
+      env,
+      payload.bookingDate!,
+      payload.bookingTime!,
+    )) {
+      return submissionJson({ ok: false, error: "slot_unavailable" }, 409);
+    }
+
     const rows = await rest<StoredSubmission[]>(
       pathname === "/api/bookings"
         ? "rpc/submit_consultation_booking"
@@ -114,12 +130,37 @@ export async function handleSubmissionRequest(
     const stored = rows[0];
     if (!stored?.lead_id) throw new Error("submission_not_stored");
 
+    let calendarEvent: CalendarEventResult | undefined;
+    if (payload.kind === "booking" && stored.booking_id) {
+      try {
+        calendarEvent = await createCalendarBooking(env, {
+          submissionKey,
+          bookingId: stored.booking_id,
+          date: payload.bookingDate!,
+          time: payload.bookingTime!,
+          name: payload.name,
+          contact: payload.contact,
+          source: payload.source,
+        });
+      } catch (error) {
+        if (!stored.duplicate) {
+          await cancelBookingAfterCalendarFailure(stored.booking_id, serviceKey)
+            .catch((rollbackError) => console.error("Booking rollback failed", {
+              bookingId: stored.booking_id,
+              message: safeErrorMessage(rollbackError),
+            }));
+        }
+        throw error;
+      }
+    }
+
     if (!stored.duplicate) {
       const delivery = deliverTelegramNotification(
         stored.lead_id,
         payload,
         env,
         serviceKey,
+        calendarEvent,
       ).catch((error) => {
         console.error("Telegram delivery failed", {
           leadId: stored.lead_id,
@@ -135,6 +176,7 @@ export async function handleSubmissionRequest(
         leadId: stored.lead_id,
         bookingId: stored.booking_id,
         duplicate: stored.duplicate,
+        meetUrl: calendarEvent?.meetUrl,
       },
       stored.duplicate ? 200 : 201,
     );
@@ -152,8 +194,69 @@ export async function handleSubmissionRequest(
         400,
       );
     }
+    if (error instanceof GoogleCalendarError) {
+      console.error("Google Calendar booking failed", {
+        pathname,
+        code: error.code,
+        message: error.message,
+      });
+      return submissionJson(
+        {
+          ok: false,
+          error: error.code === "not_configured"
+            ? "calendar_not_configured"
+            : "calendar_unavailable",
+        },
+        error.code === "not_configured" ? 503 : 502,
+      );
+    }
     console.error("Submission failed", { pathname, message });
     return submissionJson({ ok: false, error: "submission_failed" }, 500);
+  }
+}
+
+export async function handleBookingAvailabilityRequest(
+  request: Request,
+  env: SubmissionEnv,
+) {
+  if (request.method !== "GET" && request.method !== "HEAD") {
+    return submissionJson(
+      { ok: false, error: "method_not_allowed" },
+      405,
+      { Allow: "GET, HEAD" },
+    );
+  }
+
+  try {
+    const date = new URL(request.url).searchParams.get("date") ?? "";
+    validateAvailabilityDate(date);
+    const unavailable = await calendarUnavailableSlots(env, date);
+    return submissionJson(
+      { ok: true, date, unavailable },
+      200,
+      { "Cache-Control": "private, no-store" },
+    );
+  } catch (error) {
+    if (error instanceof SubmissionValidationError) {
+      return submissionJson({ ok: false, error: error.code }, 400);
+    }
+    if (error instanceof GoogleCalendarError) {
+      console.error("Google Calendar availability failed", {
+        code: error.code,
+        message: error.message,
+      });
+      return submissionJson(
+        {
+          ok: false,
+          error: error.code === "not_configured"
+            ? "calendar_not_configured"
+            : "calendar_unavailable",
+        },
+        error.code === "not_configured" ? 503 : 502,
+      );
+    }
+    console.error("Booking availability failed", { message: safeErrorMessage(error) });
+    return submissionJson({ ok: false, error: "calendar_unavailable" }, 502);
   }
 }
 
@@ -288,6 +391,27 @@ function normalizeBooking(value: unknown, request: Request): SubmissionPayload {
   }, request);
 }
 
+function validateAvailabilityDate(date: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    throw new SubmissionValidationError("invalid_date", "date");
+  }
+  const [year, month, day] = date.split("-").map(Number);
+  const normalized = new Date(Date.UTC(year, month - 1, day)).toISOString().slice(0, 10);
+  if (normalized !== date) {
+    throw new SubmissionValidationError("invalid_date", "date");
+  }
+  const requestedDay = Date.UTC(year, month - 1, day);
+  const moscowNow = new Date(Date.now() + 3 * 60 * 60_000);
+  const today = Date.UTC(
+    moscowNow.getUTCFullYear(),
+    moscowNow.getUTCMonth(),
+    moscowNow.getUTCDate(),
+  );
+  if (requestedDay < today || requestedDay > today + BOOKING_MAX_DAYS_AHEAD * 86_400_000) {
+    throw new SubmissionValidationError("invalid_date", "date");
+  }
+}
+
 function withRequestContext(
   payload: Omit<SubmissionPayload, "locale" | "country">,
   request: Request,
@@ -304,12 +428,13 @@ async function deliverTelegramNotification(
   payload: SubmissionPayload,
   env: SubmissionEnv,
   serviceKey: string,
+  calendarEvent?: CalendarEventResult,
 ) {
   const token = env.TELEGRAM_BOT_TOKEN?.trim();
   const recipients = parseRecipients(env.TELEGRAM_RECIPIENT_CHAT_IDS);
   if (!token || !recipients.length) return;
 
-  const message = telegramMessage(leadId, payload);
+  const message = telegramMessage(leadId, payload, calendarEvent);
   await Promise.all(recipients.map(async (recipient) => {
     const inserted = await rest<Array<{ id: string; status: string }>>(
       "lead_deliveries?on_conflict=lead_id,channel,recipient",
@@ -360,6 +485,25 @@ async function deliverTelegramNotification(
   }));
 }
 
+async function cancelBookingAfterCalendarFailure(
+  bookingId: string,
+  serviceKey: string,
+) {
+  const query = new URLSearchParams({ id: `eq.${bookingId}` });
+  await rest(
+    `consultation_bookings?${query}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({
+        status: "cancelled",
+        updated_at: new Date().toISOString(),
+      }),
+    },
+    "return=minimal",
+    serviceKey,
+  );
+}
+
 async function updateDelivery(
   leadId: string,
   recipient: string,
@@ -388,7 +532,11 @@ async function updateDelivery(
   );
 }
 
-function telegramMessage(leadId: string, payload: SubmissionPayload) {
+function telegramMessage(
+  leadId: string,
+  payload: SubmissionPayload,
+  calendarEvent?: CalendarEventResult,
+) {
   const lines: string[] = [];
   if (payload.kind === "booking") {
     lines.push("🔴 <b>НОВАЯ ЗАПИСЬ НА КОНСУЛЬТАЦИЮ</b>");
@@ -411,6 +559,8 @@ function telegramMessage(leadId: string, payload: SubmissionPayload) {
     lines.push(
       `📅 <b>${escapeHtml(payload.bookingDate)}, ${escapeHtml(payload.bookingTime)} МСК (GMT+3)</b>`,
     );
+    addLine(lines, "🎥 Google Meet", calendarEvent?.meetUrl);
+    addLine(lines, "🗓 Событие в календаре", calendarEvent?.eventUrl);
   }
 
   if (payload.answers?.length) {

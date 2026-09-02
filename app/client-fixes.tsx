@@ -20,6 +20,90 @@ export function ClientFixes() {
   }, []);
 
   useEffect(() => {
+    const cache = new Map<string, Set<string>>();
+    let activeDate = "";
+    let requestNumber = 0;
+
+    const localDateKey = (date: Date) => [
+      date.getFullYear(),
+      String(date.getMonth() + 1).padStart(2, "0"),
+      String(date.getDate()).padStart(2, "0"),
+    ].join("-");
+
+    const selectedDateKey = () => {
+      const days = Array.from(document.querySelectorAll<HTMLButtonElement>(".kd-booking-day"));
+      const selectedIndex = days.findIndex((day) => day.dataset.selected === "true");
+      if (selectedIndex < 0) return "";
+      const date = new Date();
+      date.setHours(0, 0, 0, 0);
+      date.setDate(date.getDate() + selectedIndex);
+      return localDateKey(date);
+    };
+
+    const slotTime = (slot: HTMLButtonElement) =>
+      slot.querySelector("span")?.textContent?.trim() || slot.textContent?.trim().slice(0, 5) || "";
+
+    const applyUnavailable = (date: string, unavailable?: Set<string>) => {
+      if (date !== selectedDateKey()) return;
+      document.querySelectorAll<HTMLButtonElement>(".kd-booking-slot").forEach((slot) => {
+        const time = slotTime(slot);
+        const insideMinimumNotice = Date.parse(`${date}T${time}:00+03:00`) - Date.now() < 4 * 60 * 60_000;
+        const blocked = insideMinimumNotice || (unavailable ? unavailable.has(time) : true);
+        slot.disabled = blocked;
+        slot.dataset.kdCalendarUnavailable = blocked ? "true" : "false";
+        slot.setAttribute(
+          "aria-label",
+          blocked
+            ? `${time} - ${currentLocale() === "en" ? "unavailable" : "занято"}`
+            : time,
+        );
+      });
+    };
+
+    const syncAvailability = async () => {
+      const date = selectedDateKey();
+      if (!date || !document.querySelector(".kd-booking-slot")) return;
+      if (date === activeDate) {
+        if (cache.has(date)) applyUnavailable(date, cache.get(date));
+        return;
+      }
+      activeDate = date;
+      const currentRequest = ++requestNumber;
+      applyUnavailable(date);
+      try {
+        const response = await fetch(`/api/booking-availability?date=${encodeURIComponent(date)}`, {
+          credentials: "same-origin",
+          headers: { Accept: "application/json" },
+        });
+        if (!response.ok) throw new Error(`Availability HTTP ${response.status}`);
+        const result = await response.json() as { unavailable?: string[] };
+        const unavailable = new Set(result.unavailable ?? []);
+        cache.set(date, unavailable);
+        if (currentRequest === requestNumber) applyUnavailable(date, unavailable);
+      } catch (error) {
+        console.error("Не удалось проверить Google Calendar", error);
+        if (currentRequest === requestNumber) {
+          activeDate = "";
+          applyUnavailable(date);
+        }
+      }
+    };
+
+    const observer = new MutationObserver(() => void syncAvailability());
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["data-selected"],
+    });
+    void syncAvailability();
+    return () => {
+      requestNumber += 1;
+      observer.disconnect();
+    };
+  }, []);
+
+  useEffect(() => {
     const readCookie = (name: string) => {
       const prefix = `${name}=`;
       return document.cookie

@@ -471,6 +471,149 @@ test("stores the full quiz path before notifying every Telegram recipient", asyn
   }
 });
 
+test("checks Google availability, creates a Meet event and includes it in Telegram", async () => {
+  const worker = await loadWorker();
+  const originalFetch = globalThis.fetch;
+  const pending = [];
+  const telegramMessages = [];
+  let calendarInsert;
+  const date = new Date(Date.now() + 10 * 86_400_000).toISOString().slice(0, 10);
+
+  globalThis.fetch = async (input, init = {}) => {
+    const url = String(input);
+    if (url === "https://oauth2.googleapis.com/token") {
+      return Response.json({ access_token: "test-access-token", expires_in: 3600 });
+    }
+    if (url === "https://www.googleapis.com/calendar/v3/freeBusy") {
+      return Response.json({ calendars: { primary: { busy: [] } } });
+    }
+    if (url.includes("/rest/v1/rpc/submit_consultation_booking")) {
+      return Response.json([{
+        lead_id: "57d9c519-7580-4a83-89a2-68675855211d",
+        booking_id: "4c55ef12-cc88-4265-9d1a-3b675e79aa2c",
+        duplicate: false,
+      }]);
+    }
+    if (url.includes("/calendar/v3/calendars/primary/events/") && (!init.method || init.method === "GET")) {
+      return new Response("", { status: 404 });
+    }
+    if (url.includes("/calendar/v3/calendars/primary/events?")) {
+      calendarInsert = JSON.parse(String(init.body));
+      return Response.json({
+        id: calendarInsert.id,
+        htmlLink: "https://calendar.google.com/calendar/event?eid=test",
+        hangoutLink: "https://meet.google.com/abc-defg-hij",
+      });
+    }
+    if (url.includes("/rest/v1/lead_deliveries?on_conflict=")) {
+      return Response.json([{ id: crypto.randomUUID(), status: "pending" }]);
+    }
+    if (url.startsWith("https://api.telegram.org/")) {
+      telegramMessages.push(JSON.parse(String(init.body)));
+      return Response.json({ ok: true, result: { message_id: 1 } });
+    }
+    if (url.includes("/rest/v1/lead_deliveries?") && init.method === "PATCH") {
+      return new Response(null, { status: 204 });
+    }
+    throw new Error(`Unexpected test request: ${url}`);
+  };
+
+  try {
+    const response = await worker.fetch(
+      new Request("https://example.test/api/bookings", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          origin: "https://example.test",
+          "sec-fetch-site": "same-origin",
+          "x-submission-key": "e530e775-7471-49b6-82ac-79847756bf22",
+        },
+        body: JSON.stringify({
+          name: "Тест календаря",
+          contact: "@client",
+          booking_date: date,
+          booking_time: "15:00",
+          source: "calendar-test",
+        }),
+      }),
+      {
+        ...runtimeEnv,
+        SUPABASE_SERVICE_ROLE_KEY: "test-only-key",
+        TELEGRAM_BOT_TOKEN: "test-token",
+        TELEGRAM_RECIPIENT_CHAT_IDS: "111,222",
+        GOOGLE_CLIENT_ID: "client-id",
+        GOOGLE_CLIENT_SECRET: "client-secret",
+        GOOGLE_REFRESH_TOKEN: "refresh-token",
+        GOOGLE_CALENDAR_ID: "primary",
+      },
+      {
+        ...runtimeContext,
+        waitUntil(promise) { pending.push(promise); },
+      },
+    );
+
+    assert.equal(response.status, 201);
+    assert.equal(calendarInsert.summary, "Консультация - Тест календаря");
+    assert.equal(calendarInsert.start.dateTime, `${date}T15:00:00+03:00`);
+    assert.equal(calendarInsert.end.dateTime, `${date}T13:00:00.000+00:00`);
+    assert.equal(calendarInsert.conferenceData.createRequest.conferenceSolutionKey.type, "hangoutsMeet");
+    await Promise.all(pending);
+    assert.equal(telegramMessages.length, 2);
+    for (const notification of telegramMessages) {
+      assert.match(notification.text, /🎥 Google Meet/);
+      assert.match(notification.text, /https:\/\/meet\.google\.com\/abc-defg-hij/);
+      assert.match(notification.text, /🗓 Событие в календаре/);
+    }
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("returns Google Calendar busy slots to the booking widget", async () => {
+  const worker = await loadWorker();
+  const originalFetch = globalThis.fetch;
+  const date = new Date(Date.now() + 7 * 86_400_000).toISOString().slice(0, 10);
+
+  globalThis.fetch = async (input) => {
+    const url = String(input);
+    if (url === "https://oauth2.googleapis.com/token") {
+      return Response.json({ access_token: "test-access-token" });
+    }
+    if (url === "https://www.googleapis.com/calendar/v3/freeBusy") {
+      return Response.json({
+        calendars: {
+          primary: {
+            busy: [{
+              start: `${date}T12:00:00+03:00`,
+              end: `${date}T13:00:00+03:00`,
+            }],
+          },
+        },
+      });
+    }
+    throw new Error(`Unexpected test request: ${url}`);
+  };
+
+  try {
+    const response = await worker.fetch(
+      new Request(`https://example.test/api/booking-availability?date=${date}`),
+      {
+        ...runtimeEnv,
+        GOOGLE_CLIENT_ID: "client-id",
+        GOOGLE_CLIENT_SECRET: "client-secret",
+        GOOGLE_REFRESH_TOKEN: "refresh-token",
+        GOOGLE_CALENDAR_ID: "primary",
+      },
+      runtimeContext,
+    );
+    assert.equal(response.status, 200);
+    const result = await response.json();
+    assert.deepEqual(result.unavailable, ["11:30", "12:00", "12:30"]);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test("adds browser security headers without changing the HTML payload", async () => {
   const worker = await loadWorker();
   const response = await worker.fetch(

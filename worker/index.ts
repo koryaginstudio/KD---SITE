@@ -4,7 +4,10 @@ import handler from "vinext/server/app-router-entry";
 import { handleAdminGet, handleAdminPost } from "../app/lib/admin-api-core";
 import { ADMIN_EMAIL } from "../app/lib/admin-identity";
 import { rejectCrossOriginMutation } from "../app/lib/request-security";
-import { handleSubmissionRequest } from "../app/lib/submission-api";
+import {
+  handleBookingAvailabilityRequest,
+  handleSubmissionRequest,
+} from "../app/lib/submission-api";
 import {
   COUNTRY_COOKIE,
   GEO_LOCALE_COOKIE,
@@ -18,6 +21,10 @@ interface Env {
   SUPABASE_SERVICE_ROLE_KEY?: string;
   TELEGRAM_BOT_TOKEN?: string;
   TELEGRAM_RECIPIENT_CHAT_IDS?: string;
+  GOOGLE_CLIENT_ID?: string;
+  GOOGLE_CLIENT_SECRET?: string;
+  GOOGLE_REFRESH_TOKEN?: string;
+  GOOGLE_CALENDAR_ID?: string;
   IMAGES?: {
     input(stream: ReadableStream): {
       transform(options: Record<string, unknown>): {
@@ -45,7 +52,9 @@ const worker = {
     const country = requestCountry(request);
     let response: Response;
 
-    if (url.pathname === "/api/leads" || url.pathname === "/api/bookings") {
+    if (url.pathname === "/api/booking-availability") {
+      response = await handleBookingAvailabilityRequest(request, env);
+    } else if (url.pathname === "/api/leads" || url.pathname === "/api/bookings") {
       response = await handleSubmissionRequest(request, env, ctx, url.pathname);
     } else if (
       url.pathname === "/api/portfolio-admin" ||
