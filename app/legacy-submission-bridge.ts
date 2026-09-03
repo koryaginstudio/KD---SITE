@@ -39,6 +39,20 @@ export function installLegacySubmissionBridge() {
             : "Это время недоступно. Выбери другой слот.",
         );
       }
+    } else {
+      let source = "website";
+      try {
+        const payload = typeof body === "string" ? JSON.parse(body) as Record<string, unknown> : null;
+        if (typeof payload?.source === "string") source = payload.source.slice(0, 80);
+      } catch {
+        // Analytics remains intentionally free of submitted personal data.
+      }
+      window.dispatchEvent(new CustomEvent("kd:conversion", {
+        detail: {
+          kind: target === "/api/bookings" ? "booking" : "lead",
+          source,
+        },
+      }));
     }
 
     return response;

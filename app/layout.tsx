@@ -1,29 +1,37 @@
 import type { Metadata } from "next";
+import { Analytics } from "./analytics";
 import { localeBootstrapScript } from "./i18n/locale";
 import "./globals.css";
 
 const siteUrl = new URL("https://koryagindesign.com");
-const pageTitle = "КОРЯГИН ДИЗАЙН™ | Брендинг, айдентика, логотипы";
+const pageTitle = "КОРЯГИН ДИЗАЙН™ | Брендинг, айдентика и логотипы";
 const socialTitle = "КОРЯГИН ДИЗАЙН™ – Айдентика, брендинг, логотипы";
 const socialDescription =
   "Создаю дизайн, который работает на ваш бизнес и помогает завоевывать доверие клиентов и поднимать средний чек. От уличного искусства - к эффективным дизайн-решениям.";
 
-const yandexMetrika = `
-(function(m,e,t,r,i,k,a){
-  m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
-  m[i].l=1*new Date();
-  for(var j=0;j<document.scripts.length;j++){if(document.scripts[j].src===r){return;}}
-  k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)
-})(window,document,'script','https://mc.yandex.ru/metrika/tag.js?id=111869692','ym');
-
-ym(111869692,'init',{ssr:true,webvisor:true,clickmap:true,ecommerce:'dataLayer',referrer:document.referrer,url:location.href,accurateTrackBounce:true,trackLinks:true});
-`;
-
 export const metadata: Metadata = {
   metadataBase: siteUrl,
   alternates: { canonical: "/" },
-  title: pageTitle,
+  title: {
+    default: pageTitle,
+    template: "%s | КОРЯГИН ДИЗАЙН™",
+  },
   description: socialDescription,
+  authors: [{ name: "Антон Корягин", url: "/" }],
+  creator: "Антон Корягин",
+  publisher: "КОРЯГИН ДИЗАЙН™",
+  category: "design",
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
+  },
   icons: {
     icon: "/favicon-32.png",
     apple: "/apple-touch-icon.png",
@@ -31,6 +39,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "ru_RU",
+    alternateLocale: ["en_US"],
     url: "/",
     siteName: "КОРЯГИН ДИЗАЙН™",
     title: socialTitle,
@@ -50,6 +59,55 @@ export const metadata: Metadata = {
     description: socialDescription,
     images: ["/og-image.jpg"],
   },
+  manifest: "/manifest.webmanifest",
+};
+
+const structuredData = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Person",
+      "@id": `${siteUrl}#person`,
+      name: "Антон Корягин",
+      alternateName: "Anton Koryagin",
+      url: siteUrl.toString(),
+      jobTitle: "Бренд-дизайнер",
+      sameAs: [
+        "https://t.me/koryagindesign",
+        "https://instagram.com/koryagindesign",
+        "https://behance.net/koryagindesign",
+        "https://www.linkedin.com/in/antonkoryagindesign/",
+      ],
+    },
+    {
+      "@type": "ProfessionalService",
+      "@id": `${siteUrl}#studio`,
+      name: "КОРЯГИН ДИЗАЙН™",
+      alternateName: "KORYAGIN DESIGN™",
+      url: siteUrl.toString(),
+      logo: new URL("/assets/logos/logo-wordmark-stacked-ink.svg", siteUrl).toString(),
+      image: new URL("/og-image.jpg", siteUrl).toString(),
+      founder: { "@id": `${siteUrl}#person` },
+      email: "koryaginstudio@gmail.com",
+      telephone: "+79650381235",
+      areaServed: "Worldwide",
+      serviceType: [
+        "Брендинг",
+        "Айдентика",
+        "Дизайн логотипа",
+        "Дизайн упаковки",
+      ],
+    },
+    {
+      "@type": "WebSite",
+      "@id": `${siteUrl}#website`,
+      url: siteUrl.toString(),
+      name: "КОРЯГИН ДИЗАЙН™",
+      alternateName: "KORYAGIN DESIGN™",
+      publisher: { "@id": `${siteUrl}#studio` },
+      inLanguage: ["ru", "en"],
+    },
+  ],
 };
 
 export default function RootLayout({
@@ -71,22 +129,16 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: localeBootstrapScript() }}
         />
         <script
-          type="text/javascript"
-          dangerouslySetInnerHTML={{ __html: yandexMetrika }}
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(structuredData).replace(/</g, "\\u003c"),
+          }}
         />
         <link rel="stylesheet" href="/assets/index-DZ3RXAbB.css" />
       </head>
       <body>
-        <noscript>
-          <div>
-            <img
-              src="https://mc.yandex.ru/watch/111869692"
-              style={{ position: "absolute", left: "-9999px" }}
-              alt=""
-            />
-          </div>
-        </noscript>
         {children}
+        <Analytics />
       </body>
     </html>
   );

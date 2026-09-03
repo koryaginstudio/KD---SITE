@@ -1,5 +1,7 @@
-# КОРЯГИН ДИЗАЙН™ — https://koryagindesign.com
 User-agent: *
 Allow: /
+Disallow: /admin
+Disallow: /api/
 
 Sitemap: https://koryagindesign.com/sitemap.xml
+Host: https://koryagindesign.com

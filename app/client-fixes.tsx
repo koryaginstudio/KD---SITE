@@ -20,7 +20,7 @@ export function ClientFixes() {
   }, []);
 
   useEffect(() => {
-    const cache = new Map<string, Set<string>>();
+    const cache = new Map<string, { unavailable: Set<string>; occupied: Set<string> }>();
     let activeDate = "";
     let requestNumber = 0;
 
@@ -43,14 +43,16 @@ export function ClientFixes() {
     const slotTime = (slot: HTMLButtonElement) =>
       slot.querySelector("span")?.textContent?.trim() || slot.textContent?.trim().slice(0, 5) || "";
 
-    const applyUnavailable = (date: string, unavailable?: Set<string>) => {
+    const applyUnavailable = (date: string, state?: { unavailable: Set<string>; occupied: Set<string> }) => {
       if (date !== selectedDateKey()) return;
       document.querySelectorAll<HTMLButtonElement>(".kd-booking-slot").forEach((slot) => {
         const time = slotTime(slot);
         const insideMinimumNotice = Date.parse(`${date}T${time}:00+03:00`) - Date.now() < 4 * 60 * 60_000;
-        const blocked = insideMinimumNotice || (unavailable ? unavailable.has(time) : true);
+        const blocked = insideMinimumNotice || (state ? state.unavailable.has(time) : true);
+        const occupied = !insideMinimumNotice && Boolean(state?.occupied.has(time));
         slot.disabled = blocked;
         slot.dataset.kdCalendarUnavailable = blocked ? "true" : "false";
+        slot.dataset.kdBookingOccupied = occupied ? "true" : "false";
         slot.setAttribute(
           "aria-label",
           blocked
@@ -76,10 +78,13 @@ export function ClientFixes() {
           headers: { Accept: "application/json" },
         });
         if (!response.ok) throw new Error(`Availability HTTP ${response.status}`);
-        const result = await response.json() as { unavailable?: string[] };
-        const unavailable = new Set(result.unavailable ?? []);
-        cache.set(date, unavailable);
-        if (currentRequest === requestNumber) applyUnavailable(date, unavailable);
+        const result = await response.json() as { unavailable?: string[]; occupied?: string[] };
+        const state = {
+          unavailable: new Set(result.unavailable ?? []),
+          occupied: new Set(result.occupied ?? []),
+        };
+        cache.set(date, state);
+        if (currentRequest === requestNumber) applyUnavailable(date, state);
       } catch (error) {
         console.error("Не удалось проверить Google Calendar", error);
         if (currentRequest === requestNumber) {

@@ -13,8 +13,10 @@ Cloudflare Workers deployment. It does not depend on ChatGPT Sites.
    - Deploy command: `npx wrangler deploy --config wrangler.jsonc`
    - Root directory: `/`
 5. Add the encrypted Worker secret `SUPABASE_SERVICE_ROLE_KEY`.
-6. Protect `/admin*` and `/api/portfolio-*` with Cloudflare Access and allow
+6. Add `GOOGLE_ANALYTICS_ID` as a Text variable using the GA4 measurement ID
+   in the `G-XXXXXXXXXX` format. Analytics starts only after cookie consent.
+7. Protect `/admin*`, `/api/portfolio-*`, and `/api/admin-bookings` with Cloudflare Access and allow
    only `koryaginstudio@gmail.com`.
-7. Connect `koryagindesign.com` under **Settings > Domains & Routes**.
+8. Connect `koryagindesign.com` under **Settings > Domains & Routes**.
 
 Never commit the Supabase service-role key to GitHub.

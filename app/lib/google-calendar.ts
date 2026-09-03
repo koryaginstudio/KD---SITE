@@ -26,6 +26,11 @@ export type CalendarEventResult = {
   meetUrl?: string;
 };
 
+export type ManagedCalendarEvent = CalendarEventResult & {
+  bookingId?: string;
+  submissionKey?: string;
+};
+
 export class GoogleCalendarError extends Error {
   constructor(
     public readonly code: "not_configured" | "authorization_failed" | "request_failed",
@@ -50,10 +55,18 @@ export async function calendarUnavailableSlots(
   env: GoogleCalendarEnv,
   date: string,
 ) {
+  return (await calendarSlotStates(env, date)).unavailable;
+}
+
+export async function calendarSlotStates(
+  env: GoogleCalendarEnv,
+  date: string,
+) {
   const rangeStart = `${date}T10:00:00+03:00`;
   const rangeEnd = `${date}T21:30:00+03:00`;
   const busy = await calendarBusyIntervals(env, rangeStart, rangeEnd);
   const unavailable: string[] = [];
+  const occupied: string[] = [];
   for (let minute = 10 * 60; minute < 21 * 60; minute += 30) {
     const time = `${String(Math.floor(minute / 60)).padStart(2, "0")}:${String(minute % 60).padStart(2, "0")}`;
     const interval = bookingInterval(date, time);
@@ -62,8 +75,11 @@ export async function calendarUnavailableSlots(
     if (busy.some((item) => Date.parse(item.start) < endMs && Date.parse(item.end) > startMs)) {
       unavailable.push(time);
     }
+    if (busy.some((item) => Date.parse(item.start) <= startMs && Date.parse(item.end) > startMs)) {
+      occupied.push(time);
+    }
   }
-  return unavailable;
+  return { unavailable, occupied };
 }
 
 async function calendarBusyIntervals(
@@ -148,6 +164,113 @@ export async function createCalendarBooking(
     },
   );
   return calendarEventResult(await response.json());
+}
+
+export async function updateCalendarBooking(
+  env: GoogleCalendarEnv,
+  booking: CalendarBooking,
+): Promise<CalendarEventResult> {
+  const calendarId = configuredCalendarId(env);
+  const accessToken = await googleAccessToken(env);
+  const eventId = await stableEventId(booking.submissionKey);
+  const current = await fetch(
+    `${GOOGLE_CALENDAR_API}/calendars/${encodeURIComponent(calendarId)}/events/${eventId}`,
+    { headers: { Authorization: `Bearer ${accessToken}` } },
+  );
+  if (current.status === 404 || current.status === 410) {
+    return createCalendarBooking(env, booking);
+  }
+  if (!current.ok) await throwGoogleError(current, "Could not read the calendar event");
+
+  const event = await current.json() as Record<string, unknown>;
+  const { start, end } = bookingInterval(booking.date, booking.time);
+  const response = await googleRequest(
+    `${GOOGLE_CALENDAR_API}/calendars/${encodeURIComponent(calendarId)}/events/${eventId}?conferenceDataVersion=1&sendUpdates=none`,
+    accessToken,
+    {
+      method: "PATCH",
+      body: JSON.stringify({
+        summary: `Консультация - ${booking.name}`,
+        start: { dateTime: start, timeZone: MOSCOW_TIME_ZONE },
+        end: { dateTime: end, timeZone: MOSCOW_TIME_ZONE },
+        extendedProperties: event.extendedProperties,
+      }),
+    },
+  );
+  return calendarEventResult(await response.json());
+}
+
+export async function deleteCalendarBooking(
+  env: GoogleCalendarEnv,
+  submissionKey: string,
+) {
+  const calendarId = configuredCalendarId(env);
+  const accessToken = await googleAccessToken(env);
+  const eventId = await stableEventId(submissionKey);
+  const response = await fetch(
+    `${GOOGLE_CALENDAR_API}/calendars/${encodeURIComponent(calendarId)}/events/${eventId}?sendUpdates=none`,
+    { method: "DELETE", headers: { Authorization: `Bearer ${accessToken}` } },
+  );
+  if (response.ok || response.status === 404 || response.status === 410) return;
+  await throwGoogleError(response, "Could not delete the calendar event");
+}
+
+export async function listManagedCalendarEvents(
+  env: GoogleCalendarEnv,
+  timeMin: string,
+  timeMax: string,
+): Promise<ManagedCalendarEvent[]> {
+  const calendarId = configuredCalendarId(env);
+  const accessToken = await googleAccessToken(env);
+  const params = new URLSearchParams({
+    timeMin,
+    timeMax,
+    singleEvents: "true",
+    maxResults: "2500",
+  });
+  const response = await googleRequest(
+    `${GOOGLE_CALENDAR_API}/calendars/${encodeURIComponent(calendarId)}/events?${params}`,
+    accessToken,
+    { method: "GET" },
+  );
+  const payload = await response.json() as { items?: unknown[] };
+  return (payload.items ?? []).map((value) => {
+    const event = value as {
+      extendedProperties?: { private?: Record<string, string> };
+    };
+    return {
+      ...calendarEventResult(value),
+      bookingId: event.extendedProperties?.private?.kdBookingId,
+      submissionKey: event.extendedProperties?.private?.kdSubmissionKey,
+    };
+  });
+}
+
+export async function calendarSlotIsBusyExcept(
+  env: GoogleCalendarEnv,
+  date: string,
+  time: string,
+  ignoredSubmissionKey: string,
+) {
+  const calendarId = configuredCalendarId(env);
+  const accessToken = await googleAccessToken(env);
+  const ignoredEventId = await stableEventId(ignoredSubmissionKey);
+  const { start, end } = bookingInterval(date, time);
+  const params = new URLSearchParams({
+    timeMin: start,
+    timeMax: end,
+    singleEvents: "true",
+    maxResults: "50",
+  });
+  const response = await googleRequest(
+    `${GOOGLE_CALENDAR_API}/calendars/${encodeURIComponent(calendarId)}/events?${params}`,
+    accessToken,
+    { method: "GET" },
+  );
+  const payload = await response.json() as { items?: Array<{ id?: string; status?: string; transparency?: string }> };
+  return (payload.items ?? []).some((event) =>
+    event.id !== ignoredEventId && event.status !== "cancelled" && event.transparency !== "transparent",
+  );
 }
 
 function configuredCalendarId(env: GoogleCalendarEnv) {

@@ -8,6 +8,7 @@ import {
   PORTFOLIO_IMAGE_RECOMMENDED_WIDTH,
   PORTFOLIO_IMAGE_TYPES,
 } from "../lib/portfolio-image-rules";
+import { BookingsPanel } from "./bookings-panel";
 
 type Project = {
   id: string;
@@ -61,7 +62,7 @@ type AdminData = {
 };
 
 type ProjectDraft = Omit<Project, "id" | "cover" | "images">;
-type View = "projects" | "types";
+type View = "projects" | "types" | "bookings";
 type Filter = "all" | "published" | "drafts";
 type EditorLanguage = "ru" | "en";
 
@@ -541,6 +542,11 @@ export function AdminPanel({
             Типы проектов
             <span>{data.projectTypes.length}</span>
           </button>
+          <button className={view === "bookings" ? "is-active" : ""} onClick={() => setView("bookings")}>
+            <Icon name="calendar" />
+            Консультации
+            <span>CRM</span>
+          </button>
         </nav>
 
         <div className="admin-sidebar-bottom">
@@ -559,7 +565,7 @@ export function AdminPanel({
         <header className="admin-topbar">
           <div>
             <span className="admin-eyebrow">КОРЯГИН ДИЗАЙН™ / ADMIN</span>
-            <h1>{view === "projects" ? "Управление проектами" : "Типы проектов"}</h1>
+            <h1>{view === "projects" ? "Управление проектами" : view === "types" ? "Типы проектов" : "Записи на консультации"}</h1>
           </div>
           {view === "projects" && (
             <button className="admin-primary-button" onClick={openNewProject}>
@@ -630,7 +636,7 @@ export function AdminPanel({
               <EmptyState onCreate={openNewProject} />
             )}
           </>
-        ) : (
+        ) : view === "types" ? (
           <section className="admin-types-section">
             <div className="admin-types-intro">
               <div><h2>Фильтры портфолио</h2><p>Эти пункты посетитель видит над проектами. Меняй порядок стрелками, временно скрывай или удаляй неиспользуемые.</p></div>
@@ -669,6 +675,8 @@ export function AdminPanel({
               </div>
             )}
           </section>
+        ) : (
+          <BookingsPanel onToast={showToast} />
         )}
       </section>
 
@@ -899,6 +907,7 @@ function Icon({ name }: { name: string }) {
     close: <path d="m6 6 12 12M18 6 6 18"/>,
     image: <><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 15-5-5L5 20"/></>,
     alert: <><path d="M12 3 2.5 20h19Z"/><path d="M12 9v5M12 17h.01"/></>,
+    calendar: <><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></>,
   };
   return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[name]}</svg>;
 }

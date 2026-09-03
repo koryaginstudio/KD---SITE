@@ -19,7 +19,7 @@ async function loadWorker() {
   return (await import(workerUrl.href)).default;
 }
 
-test("renders the production site shell and analytics", async () => {
+test("renders SEO metadata and keeps analytics behind cookie consent", async () => {
   const worker = await loadWorker();
 
   const response = await worker.fetch(
@@ -47,7 +47,76 @@ test("renders the production site shell and analytics", async () => {
   );
   assert.match(html, /\/assets\/index-[A-Za-z0-9_-]+\.css/i);
   assert.match(html, /\/assets\/index-[A-Za-z0-9_-]+\.js/i);
-  assert.match(html, /mc\.yandex\.ru\/metrika\/tag\.js\?id=111869692/i);
+  assert.match(html, /"@type":"ProfessionalService"/i);
+  assert.doesNotMatch(html, /mc\.yandex\.ru\/metrika\/tag\.js\?id=111869692/i);
+
+  const analytics = await readFile("app/analytics.tsx", "utf8");
+  assert.match(analytics, /kd-cookie-consent/);
+  assert.match(analytics, /googletagmanager\.com\/gtag\/js/);
+  assert.match(analytics, /mc\.yandex\.ru\/metrika\/tag\.js/);
+});
+
+test("publishes only a valid GA4 measurement ID", async () => {
+  const worker = await loadWorker();
+  const configured = await worker.fetch(
+    new Request("https://example.test/api/analytics-config"),
+    { ...runtimeEnv, GOOGLE_ANALYTICS_ID: "G-ABC123XYZ" },
+    runtimeContext,
+  );
+  assert.deepEqual(await configured.json(), { googleAnalyticsId: "G-ABC123XYZ" });
+
+  const invalid = await worker.fetch(
+    new Request("https://example.test/api/analytics-config"),
+    { ...runtimeEnv, GOOGLE_ANALYTICS_ID: "<script>" },
+    runtimeContext,
+  );
+  assert.deepEqual(await invalid.json(), { googleAnalyticsId: "" });
+});
+
+test("publishes crawl rules, a focused sitemap and real 404 responses", async () => {
+  const worker = await loadWorker();
+
+  const robots = await worker.fetch(
+    new Request("https://example.test/robots.txt"),
+    runtimeEnv,
+    runtimeContext,
+  );
+  const robotsText = await robots.text();
+  assert.equal(robots.status, 200);
+  assert.match(robotsText, /Disallow: \/admin/);
+  assert.match(robotsText, /Disallow: \/api\//);
+  assert.match(robotsText, /Sitemap: https:\/\/koryagindesign\.com\/sitemap\.xml/);
+
+  const sitemap = await worker.fetch(
+    new Request("https://example.test/sitemap.xml"),
+    runtimeEnv,
+    runtimeContext,
+  );
+  const sitemapXml = await sitemap.text();
+  assert.match(sitemapXml, /https:\/\/koryagindesign\.com\/portfolio/);
+  assert.doesNotMatch(sitemapXml, /\/privacy<\/loc>/);
+
+  const missing = await worker.fetch(
+    new Request("https://example.test/not-a-real-page", { headers: { accept: "text/html" } }),
+    runtimeEnv,
+    runtimeContext,
+  );
+  assert.equal(missing.status, 404);
+  assert.match(await missing.text(), /Страница не найдена/);
+});
+
+test("redirects the production host to one canonical HTTPS origin", async () => {
+  const worker = await loadWorker();
+  const response = await worker.fetch(
+    new Request("http://www.koryagindesign.com/portfolio?from=test"),
+    runtimeEnv,
+    runtimeContext,
+  );
+  assert.equal(response.status, 308);
+  assert.equal(
+    response.headers.get("location"),
+    "https://koryagindesign.com/portfolio?from=test",
+  );
 });
 
 test("keeps the first-screen portfolio rotation at four seconds", async () => {
@@ -609,6 +678,7 @@ test("returns Google Calendar busy slots to the booking widget", async () => {
     assert.equal(response.status, 200);
     const result = await response.json();
     assert.deepEqual(result.unavailable, ["11:30", "12:00", "12:30"]);
+    assert.deepEqual(result.occupied, ["12:00", "12:30"]);
   } finally {
     globalThis.fetch = originalFetch;
   }
@@ -633,6 +703,12 @@ test("adds browser security headers without changing the HTML payload", async ()
     response.headers.get("content-security-policy") ?? "",
     /frame-ancestors 'none'/,
   );
+  assert.match(
+    response.headers.get("content-security-policy") ?? "",
+    /default-src 'self'/,
+  );
+  assert.equal(response.headers.get("cross-origin-opener-policy"), "same-origin");
+  assert.equal(response.headers.get("x-permitted-cross-domain-policies"), "none");
 });
 
 test("rejects every legacy admin endpoint without authentication", async () => {
@@ -642,6 +718,7 @@ test("rejects every legacy admin endpoint without authentication", async () => {
     ["/api/portfolio-admin", "GET"],
     ["/api/portfolio-command", "POST"],
     ["/api/portfolio-media", "POST"],
+    ["/api/admin-bookings", "GET"],
   ]) {
     const response = await worker.fetch(
       new Request(`https://example.test${path}`, { method }),

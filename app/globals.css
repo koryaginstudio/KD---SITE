@@ -846,3 +846,13 @@ header > .kd-container {
     animation: none;
   }
 }
+
+/* Two half-hour cells represent the appointment itself. A preceding start may
+   still be disabled when its required buffer would overlap that appointment. */
+.kd-booking-slot:disabled {
+  text-decoration: none;
+}
+
+.kd-booking-slot:disabled[data-kd-booking-occupied="true"] {
+  text-decoration: line-through;
+}

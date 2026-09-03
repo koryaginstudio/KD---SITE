@@ -3,7 +3,7 @@ import { rejectCrossOriginMutation } from "./request-security";
 import { rest } from "./supabase-admin";
 import {
   calendarSlotIsBusy,
-  calendarUnavailableSlots,
+  calendarSlotStates,
   createCalendarBooking,
   GoogleCalendarError,
   type CalendarEventResult,
@@ -230,9 +230,9 @@ export async function handleBookingAvailabilityRequest(
   try {
     const date = new URL(request.url).searchParams.get("date") ?? "";
     validateAvailabilityDate(date);
-    const unavailable = await calendarUnavailableSlots(env, date);
+    const { unavailable, occupied } = await calendarSlotStates(env, date);
     return submissionJson(
-      { ok: true, date, unavailable },
+      { ok: true, date, unavailable, occupied },
       200,
       { "Cache-Control": "private, no-store" },
     );
