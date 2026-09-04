@@ -3,7 +3,10 @@
 import { useEffect } from "react";
 import { installLegacySubmissionBridge } from "./legacy-submission-bridge";
 
-const LEGACY_ENTRY = "/assets/index-xadm5lxP.js?v=20260902-2";
+// Keep the entry URL identical to the URL used by its Vite chunks. Adding a
+// query string here makes the browser evaluate the shared React bundle twice,
+// which can cause an invalid-hook crash while lazy routes are loading.
+const LEGACY_ENTRY = "/assets/index-xadm5lxP.js";
 const LOAD_TIMEOUT_MS = 25000;
 let webGLPreflightDone = false;
 
