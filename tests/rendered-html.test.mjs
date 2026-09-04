@@ -348,6 +348,8 @@ test("ships international branding, Moscow booking time and LinkedIn", async () 
   assert.match(bundle, /eng-logo-horizontal-white\.svg/);
   assert.match(loader, /kd-site-loader__logo-en/);
   assert.match(loader, /index-xadm5lxP\.js\?v=20260902-2/);
+  assert.match(loader, /LOAD_TIMEOUT_MS = 25000/);
+  assert.doesNotMatch(loader, /window\.setTimeout\(markFailed, 0\)/);
   assert.match(bundle, /linkedin\.com\/in\/antonkoryagindesign/);
   assert.doesNotMatch(bundle, /vk\.com\/koryagindesign/);
   assert.match(bundle, /LinkedIn:"linkedin"/);

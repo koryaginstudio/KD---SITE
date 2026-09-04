@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { installLegacySubmissionBridge } from "./legacy-submission-bridge";
 
 const LEGACY_ENTRY = "/assets/index-xadm5lxP.js?v=20260902-2";
-const LOAD_TIMEOUT_MS = 12000;
+const LOAD_TIMEOUT_MS = 25000;
 let webGLPreflightDone = false;
 
 function enableReducedMotionFallbackWhenWebGLIsUnavailable() {
@@ -102,15 +102,9 @@ export function LegacyBoot() {
       }
     };
 
-    const handleRuntimeError = () => {
-      window.setTimeout(markFailed, 0);
-    };
-
     const handleRetry = () => window.location.reload();
     retry.addEventListener("click", handleRetry);
     window.addEventListener("kd-locale-ready", syncLoader);
-    window.addEventListener("error", handleRuntimeError);
-    window.addEventListener("unhandledrejection", handleRuntimeError);
 
     enableReducedMotionFallbackWhenWebGLIsUnavailable();
     const restoreSubmissionBridge = installLegacySubmissionBridge();
@@ -129,7 +123,6 @@ export function LegacyBoot() {
       script.dataset.kdLegacyEntry = "true";
     }
     script.addEventListener("load", syncLoader);
-    script.addEventListener("error", markFailed);
     if (shouldAppendScript) document.head.appendChild(script);
 
     const loadTimer = window.setTimeout(markFailed, LOAD_TIMEOUT_MS);
@@ -142,9 +135,6 @@ export function LegacyBoot() {
       retry.removeEventListener("click", handleRetry);
       window.removeEventListener("kd-locale-ready", syncLoader);
       script.removeEventListener("load", syncLoader);
-      script.removeEventListener("error", markFailed);
-      window.removeEventListener("error", handleRuntimeError);
-      window.removeEventListener("unhandledrejection", handleRuntimeError);
       restoreSubmissionBridge();
     };
   }, []);
